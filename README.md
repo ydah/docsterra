@@ -57,6 +57,7 @@ terradoc version
 - `-o`, `--output`: output markdown path (default: `./infrastructure.md`)
 - `-c`, `--config`: config file path (default: `.terradoc.yml`)
 - `-s`, `--sections`: comma-separated sections (`all`, `resources`, `network`, `security`, `cost`)
+- `-f`, `--format`: output format (currently only `markdown`)
 - `-v`, `--verbose`: verbose output
 - `--ignore`: ignore glob patterns (repeatable via Thor array syntax)
 

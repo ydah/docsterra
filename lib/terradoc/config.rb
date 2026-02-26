@@ -8,9 +8,10 @@ module Terradoc
     DEFAULT_CONFIG_PATH = ".terradoc.yml"
     DEFAULT_OUTPUT_PATH = "./infrastructure.md"
     DEFAULT_SECTIONS = ["all"].freeze
+    DEFAULT_FORMAT = "markdown"
 
     attr_reader :config_path, :paths, :products, :output_path, :output,
-                :sections, :resource_attributes, :ignore_patterns, :verbose
+                :sections, :format, :resource_attributes, :ignore_patterns, :verbose
 
     def self.load(path = DEFAULT_CONFIG_PATH)
       raw = File.exist?(path) ? parse_yaml(path) : {}
@@ -30,6 +31,7 @@ module Terradoc
       products: [],
       output_path: DEFAULT_OUTPUT_PATH,
       sections: DEFAULT_SECTIONS,
+      format: DEFAULT_FORMAT,
       resource_attributes: {},
       ignore_patterns: [],
       verbose: false
@@ -39,10 +41,11 @@ module Terradoc
       @paths = normalize_paths(paths, products)
       @output_path = output_path
       @sections = normalize_sections(sections)
+      @format = (format || DEFAULT_FORMAT).to_s
       @resource_attributes = resource_attributes || {}
       @ignore_patterns = Array(ignore_patterns).compact
       @verbose = (verbose == true)
-      @output = { "path" => @output_path, "sections" => @sections.dup }
+      @output = { "path" => @output_path, "sections" => @sections.dup, "format" => @format }
     end
 
     def merge_cli(paths:, options:, config_path:)
@@ -50,6 +53,7 @@ module Terradoc
       merged_sections = cli_sections_override(options) || @sections
       merged_verbose = @verbose || (options[:verbose] == true)
       merged_ignore_patterns = @ignore_patterns + Array(options[:ignore]).reject(&:nil?)
+      merged_format = cli_format_override(options) || @format
 
       self.class.new(
         config_path: config_path,
@@ -57,6 +61,7 @@ module Terradoc
         products: @products,
         output_path: merged_output_path,
         sections: merged_sections,
+        format: merged_format,
         resource_attributes: @resource_attributes,
         ignore_patterns: merged_ignore_patterns,
         verbose: merged_verbose
@@ -129,6 +134,14 @@ module Terradoc
       value
     end
 
+    def cli_format_override(options)
+      value = options[:format]
+      return nil if value.nil?
+      return nil if value.to_s == DEFAULT_FORMAT && @format != DEFAULT_FORMAT
+
+      value.to_s
+    end
+
     class << self
       private
 
@@ -145,6 +158,7 @@ module Terradoc
           products: Array(raw["products"]),
           output_path: output.fetch("path", DEFAULT_OUTPUT_PATH),
           sections: output.fetch("sections", DEFAULT_SECTIONS),
+          format: output.fetch("format", DEFAULT_FORMAT),
           resource_attributes: raw.fetch("resource_attributes", {}),
           ignore_patterns: raw.fetch("ignore", []),
           verbose: false

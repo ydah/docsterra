@@ -36,6 +36,7 @@ module Terradoc
     # @return [Terradoc::Document]
     def generate(*paths, **options)
       config = Config.from_cli_options(paths: paths, options: options)
+      validate_format!(config)
       pipeline = build_pipeline(config)
       markdown = Renderer::MarkdownRenderer.new(
         projects: pipeline[:projects],
@@ -66,11 +67,13 @@ module Terradoc
     # @return [Hash]
     def check(*paths, **options)
       config = Config.from_cli_options(paths: paths, options: options)
+      validate_format!(config)
       pipeline = build_pipeline(config)
       {
         paths: config.product_definitions.map { |item| item["path"] },
         output_path: config.output_path,
         sections: config.sections,
+        format: config.format,
         ignore_patterns: config.ignore_patterns,
         project_count: pipeline[:projects].size,
         resource_count: pipeline[:projects].sum { |project| project.resources.size },
@@ -105,6 +108,12 @@ module Terradoc
       { projects: projects, relationships: relationships, warnings: warnings }
     end
 
+    def validate_format!(config)
+      return if config.format == "markdown"
+
+      raise Error, "Unsupported format: #{config.format} (only 'markdown' is supported)"
+    end
+
     def build_projects(config:, parser:, module_resolver:, warnings:)
       config.product_definitions.map do |product|
         tf_files = find_tf_files(product["path"], config.ignore_patterns)
@@ -127,17 +136,40 @@ module Terradoc
     end
 
     def resolve_local_modules!(project, module_resolver, warnings)
-      project.modules.each do |entry|
-        result = module_resolver.resolve(project_path: project.path, module_block: entry.block)
-        next unless result[:type] == :local
+      processed_module_entries = {}
 
-        result[:parsed_files].each do |file, ast|
-          if ast.is_a?(Hash) && ast[:error]
-            warnings << "Failed to parse module file #{file}: #{ast[:error]}"
-          else
+      loop do
+        new_files_added = false
+        pending_entries = project.modules.reject do |entry|
+          processed_module_entries.key?([entry.file, entry.block.object_id])
+        end
+        break if pending_entries.empty?
+
+        pending_entries.each do |entry|
+          processed_module_entries[[entry.file, entry.block.object_id]] = true
+          result = module_resolver.resolve(
+            project_path: project.path,
+            module_block: entry.block,
+            base_path: File.dirname(entry.file)
+          )
+          next unless result[:type] == :local
+
+          result[:parsed_files].each do |file, ast|
+            if ast.is_a?(Hash) && ast[:error]
+              warnings << "Failed to parse module file #{file}: #{ast[:error]}"
+              next
+            end
+
+            next if project.parsed_files.key?(file)
+
             project.parsed_files[file] = ast
+            new_files_added = true
           end
         end
+
+        break unless new_files_added
+
+        project.reindex!
       end
       project.reindex!
     end

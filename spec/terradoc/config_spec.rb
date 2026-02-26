@@ -21,6 +21,7 @@ RSpec.describe Terradoc::Config do
               sections:
                 - resources
                 - security
+              format: markdown
           YAML
         )
 
@@ -37,7 +38,14 @@ RSpec.describe Terradoc::Config do
 
         expect(config.output_path).to eq("./docs/custom.md")
         expect(config.sections).to eq(%w[resources security])
+        expect(config.format).to eq("markdown")
       end
+    end
+
+    it "allows CLI format override" do
+      config = described_class.from_cli_options(paths: ["./terraform"], options: { format: "markdown" })
+
+      expect(config.format).to eq("markdown")
     end
   end
 

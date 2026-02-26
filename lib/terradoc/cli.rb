@@ -20,6 +20,11 @@ module Terradoc
                  aliases: "-s",
                  default: "all",
                  desc: "Comma-separated sections to generate"
+    class_option :format,
+                 type: :string,
+                 aliases: "-f",
+                 default: Config::DEFAULT_FORMAT,
+                 desc: "Output format (currently: markdown)"
     class_option :verbose,
                  type: :boolean,
                  aliases: "-v",
@@ -47,6 +52,7 @@ module Terradoc
       say("Terradoc check summary")
       say("Paths: #{summary[:paths].empty? ? '(none)' : summary[:paths].join(', ')}")
       say("Sections: #{summary[:sections].join(', ')}")
+      say("Format: #{summary[:format]}")
       say("Output: #{summary[:output_path]}")
       say("Ignore: #{summary[:ignore_patterns].empty? ? '(none)' : summary[:ignore_patterns].join(', ')}")
       say("Projects: #{summary[:project_count]}")

@@ -14,6 +14,11 @@ RSpec.describe Terradoc::CLI do
         .to output(/Terradoc check summary/).to_stdout
     end
 
+    it "prints format in dry-run summary" do
+      expect { described_class.start(["check", "./terraform", "-f", "markdown"]) }
+        .to output(/Format: markdown/).to_stdout
+    end
+
     it "generates markdown file" do
       Dir.mktmpdir do |dir|
         base = File.expand_path("../../fixtures/multi_product", __dir__)

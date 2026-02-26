@@ -35,5 +35,12 @@ RSpec.describe Terradoc do
     expect(summary[:project_count]).to eq(3)
     expect(summary[:resource_count]).to be >= 1
     expect(summary[:data_source_count]).to be >= 1
+    expect(summary[:format]).to eq("markdown")
+  end
+
+  it "rejects unsupported output formats" do
+    expect do
+      described_class.check("./spec/fixtures/multi_product/shared", format: "html")
+    end.to raise_error(Terradoc::Error, /Unsupported format/)
   end
 end

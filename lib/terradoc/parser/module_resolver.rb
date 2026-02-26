@@ -10,14 +10,15 @@ module Terradoc
         @cache = {}
       end
 
-      def resolve(project_path:, module_block:)
+      def resolve(project_path:, module_block:, base_path: nil)
         source_node = find_attribute(module_block, "source")
         source = source_node && literal_like_text(source_node)
+        resolution_base = base_path || project_path
 
         return unresolved_result(module_block, source) if source.nil?
 
         if local_source?(source)
-          resolve_local_module(project_path, module_block, source)
+          resolve_local_module(resolution_base, module_block, source)
         else
           unresolved_result(module_block, source, local: false, reason: "remote module source is not parsed")
         end
@@ -25,8 +26,8 @@ module Terradoc
 
       private
 
-      def resolve_local_module(project_path, module_block, source)
-        absolute_path = File.expand_path(source, project_path)
+      def resolve_local_module(base_path, module_block, source)
+        absolute_path = File.expand_path(source, base_path)
 
         cached = @cache[absolute_path]
         return cached if cached
@@ -42,6 +43,7 @@ module Terradoc
           type: :local,
           source: source,
           absolute_path: absolute_path,
+          base_path: base_path,
           module_name: module_block.labels&.first,
           parsed_files: parsed_files
         }
@@ -55,6 +57,7 @@ module Terradoc
           module_name: module_block.labels&.first,
           parsed_files: {},
           local: local,
+          base_path: nil,
           reason: reason
         }
       end
