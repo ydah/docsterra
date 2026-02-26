@@ -4,14 +4,15 @@ require "fileutils"
 
 module Terradoc
   class Document
-    attr_reader :projects, :relationships, :config, :warnings
+    attr_reader :projects, :relationships, :config, :warnings, :title
 
-    def initialize(projects:, relationships:, config:, warnings:, markdown:)
+    def initialize(projects:, relationships:, config:, warnings:, markdown:, title: nil)
       @projects = Array(projects)
       @relationships = Array(relationships)
       @config = config
       @warnings = Array(warnings)
       @markdown = markdown
+      @title = title
     end
 
     def to_markdown

@@ -32,5 +32,12 @@ RSpec.describe Terradoc::CLI do
         expect(File.read(output_path)).to include("# インフラ設計書")
       end
     end
+
+    it "prints progress messages in verbose mode" do
+      base = File.expand_path("../../fixtures/multi_product", __dir__)
+      expect do
+        described_class.start(["check", File.join(base, "shared"), "-v"])
+      end.to output(/Parsing .*Terraform files/).to_stdout
+    end
   end
 end

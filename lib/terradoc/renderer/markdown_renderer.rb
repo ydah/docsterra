@@ -5,10 +5,11 @@ require "set"
 module Terradoc
   module Renderer
     class MarkdownRenderer
-      def initialize(projects:, relationships:, config:)
+      def initialize(projects:, relationships:, config:, title: nil)
         @projects = Array(projects)
         @relationships = Array(relationships)
         @config = config
+        @title = title
         @mermaid = MermaidDiagram.new
       end
 
@@ -28,7 +29,7 @@ module Terradoc
 
       def render_header
         [
-          "# インフラ設計書 — terradoc",
+          "# インフラ設計書 — #{document_title}",
           "",
           "生成日時: #{Time.now.strftime('%Y-%m-%d %H:%M:%S')}",
           "対象ディレクトリ: #{@projects.map(&:path).join(', ')}",
@@ -59,6 +60,11 @@ module Terradoc
 
       def render_project(project)
         sections = ["## #{project.name}"]
+
+        if project.shared?
+          sections << "### 利用プロダクト一覧"
+          sections << render_shared_project_consumers(project)
+        end
 
         if render_section?(:resources)
           sections << "### リソース一覧"
@@ -138,6 +144,40 @@ module Terradoc
         return nil if parts.length < 2
 
         parts[0, 2].join(".")
+      end
+
+      def render_shared_project_consumers(project)
+        consumers = @relationships.filter_map do |relationship|
+          target_project = relationship_target_project(relationship)
+          next unless target_project == project
+
+          source_project = relationship_source_project(relationship)
+          next if source_project.nil? || source_project == project
+
+          source_project.name
+        end.uniq.sort
+
+        consumers.empty? ? "なし" : consumers.map { |name| "- #{name}" }.join("\n")
+      end
+
+      def relationship_target_project(relationship)
+        if relationship.target.is_a?(Terradoc::Model::Project)
+          relationship.target
+        elsif relationship.target.respond_to?(:project)
+          relationship.target.project
+        end
+      end
+
+      def relationship_source_project(relationship)
+        if relationship.source.is_a?(Terradoc::Model::Project)
+          relationship.source
+        elsif relationship.source.respond_to?(:project)
+          relationship.source.project
+        end
+      end
+
+      def document_title
+        @title || "terradoc"
       end
     end
   end

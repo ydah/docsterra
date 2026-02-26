@@ -37,10 +37,11 @@ module Terradoc
 
     desc "generate [PATHS...]", "Generate infrastructure document"
     def generate(*paths)
-      document = Terradoc.generate(*paths, **runtime_options)
-      document.save(options[:output])
+      document = Terradoc.generate(*paths, **runtime_options_with_progress)
+      output_path = document.config.output_path
+      document.save(output_path)
       summary = document.summary
-      say("Generated #{options[:output]} (#{summary[:resource_count]} resources across #{summary[:project_count]} projects)")
+      say("Generated #{output_path} (#{summary[:resource_count]} resources across #{summary[:project_count]} projects)")
       Array(document.warnings).each { |warning| say("Warning: #{warning}") } if options[:verbose]
     rescue Terradoc::Error => e
       raise Thor::Error, e.message
@@ -48,7 +49,7 @@ module Terradoc
 
     desc "check [PATHS...]", "Dry-run parsing and print summary"
     def check(*paths)
-      summary = Terradoc.check(*paths, **runtime_options)
+      summary = Terradoc.check(*paths, **runtime_options_with_progress)
       say("Terradoc check summary")
       say("Paths: #{summary[:paths].empty? ? '(none)' : summary[:paths].join(', ')}")
       say("Sections: #{summary[:sections].join(', ')}")
@@ -78,6 +79,13 @@ module Terradoc
 
     def runtime_options
       options.to_h.transform_keys(&:to_sym)
+    end
+
+    def runtime_options_with_progress
+      opts = runtime_options
+      return opts unless options[:verbose]
+
+      opts.merge(progress: ->(message) { say(message) })
     end
   end
 end

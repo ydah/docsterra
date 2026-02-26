@@ -43,4 +43,12 @@ RSpec.describe Terradoc do
       described_class.check("./spec/fixtures/multi_product/shared", format: "html")
     end.to raise_error(Terradoc::Error, /Unsupported format/)
   end
+
+  it "supports custom document title via name option" do
+    base = File.expand_path("fixtures/multi_product", __dir__)
+    document = described_class.generate(File.join(base, "shared"), name: "My Infrastructure")
+
+    expect(document.title).to eq("My Infrastructure")
+    expect(document.to_markdown).to include("# インフラ設計書 — My Infrastructure")
+  end
 end
