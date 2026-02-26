@@ -104,14 +104,14 @@ ignore:
 
 ## Output Example (Sections)
 
-- `## 概要`
-- `## プロダクト間依存関係` (Mermaid)
+- `## Overview`
+- `## Cross-Product Dependencies` (Mermaid)
 - `## {Product}`
-- `### リソース一覧`
-- `### ネットワーク構成` (Mermaid)
-- `### セキュリティ設定`
-- `### コスト概算情報`
-- `## 付録`
+- `### Resources`
+- `### Network Configuration` (Mermaid)
+- `### Security Settings`
+- `### Cost Estimation`
+- `## Appendix`
 
 ## Limitations
 
@@ -126,6 +126,7 @@ ignore:
 ```bash
 bundle install
 bundle exec rspec
+```
 
 ## License
 
