@@ -1,6 +1,6 @@
-# Terradoc
+# Docsterra
 
-`terradoc` is a Ruby gem / CLI that parses Terraform (`.tf`) files and generates infrastructure design documentation in Markdown.
+`docsterra` is a Ruby gem / CLI that parses Terraform (`.tf`) files and generates infrastructure design documentation in Markdown.
 
 Current implementation focuses on GCP Terraform resources and produces:
 
@@ -13,13 +13,13 @@ Current implementation focuses on GCP Terraform resources and produces:
 ## Installation
 
 ```bash
-gem install terradoc
+gem install docsterra
 ```
 
 Or from a Gemfile:
 
 ```ruby
-gem "terradoc"
+gem "docsterra"
 ```
 
 ## Quick Start
@@ -27,19 +27,19 @@ gem "terradoc"
 Single Terraform root:
 
 ```bash
-terradoc generate ./terraform
+docsterra generate ./terraform
 ```
 
 Multiple products (cross-product dependency analysis enabled):
 
 ```bash
-terradoc generate ./product-a/terraform ./product-b/terraform ./shared/terraform -o ./docs/infrastructure.md
+docsterra generate ./product-a/terraform ./product-b/terraform ./shared/terraform -o ./docs/infrastructure.md
 ```
 
 Dry-run summary:
 
 ```bash
-terradoc check ./terraform
+docsterra check ./terraform
 ```
 
 ## CLI Reference
@@ -47,15 +47,15 @@ terradoc check ./terraform
 ### Commands
 
 ```bash
-terradoc generate [PATHS...]
-terradoc check [PATHS...]
-terradoc version
+docsterra generate [PATHS...]
+docsterra check [PATHS...]
+docsterra version
 ```
 
 ### Options
 
 - `-o`, `--output`: output markdown path (default: `./infrastructure.md`)
-- `-c`, `--config`: config file path (default: `.terradoc.yml`)
+- `-c`, `--config`: config file path (default: `.docsterra.yml`)
 - `-s`, `--sections`: comma-separated sections (`all`, `resources`, `network`, `security`, `cost`)
 - `-f`, `--format`: output format (currently only `markdown`)
 - `-v`, `--verbose`: verbose output
@@ -64,17 +64,17 @@ terradoc version
 ## Library Usage
 
 ```ruby
-require "terradoc"
+require "docsterra"
 
-doc = Terradoc.generate("./terraform")
+doc = Docsterra.generate("./terraform")
 doc.save("./docs/infrastructure.md")
 puts doc.to_markdown
 
-summary = Terradoc.check("./terraform")
+summary = Docsterra.check("./terraform")
 puts summary[:resource_count]
 ```
 
-## Configuration (`.terradoc.yml`)
+## Configuration (`.docsterra.yml`)
 
 ```yaml
 products:
