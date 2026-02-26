@@ -29,7 +29,7 @@ RSpec.describe Terradoc::CLI do
         end.to output(/Generated .*resources across .*projects/).to_stdout
 
         expect(File).to exist(output_path)
-        expect(File.read(output_path)).to include("# インフラ設計書")
+        expect(File.read(output_path)).to include("# Infrastructure Design Document")
       end
     end
 

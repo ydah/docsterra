@@ -30,10 +30,10 @@ RSpec.describe Terradoc::Renderer::SecuritySection do
 
     markdown = described_class.new(report: report).render
 
-    expect(markdown).to include("#### IAMバインディング一覧")
-    expect(markdown).to include("#### ファイアウォールルール一覧")
-    expect(markdown).to include("#### サービスアカウント一覧")
-    expect(markdown).to include("使用箇所")
+    expect(markdown).to include("#### IAM Bindings")
+    expect(markdown).to include("#### Firewall Rules")
+    expect(markdown).to include("#### Service Accounts")
+    expect(markdown).to include("Used By")
     expect(markdown).to include("google_cloud_run_service.api")
     expect(markdown).to include("> ⚠️ Open ingress firewall rule detected")
   end

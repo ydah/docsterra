@@ -8,10 +8,10 @@ module Terradoc
       end
 
       def render
-        return "コスト概算対象のリソースなし" if @items.empty?
+        return "No resources for cost estimation" if @items.empty?
 
         lines = [
-          "| リソース | タイプ | スペック | リージョン | 備考 |",
+          "| Resource | Type | Spec | Region | Notes |",
           "|---|---|---|---|---|"
         ]
         @items.each do |item|

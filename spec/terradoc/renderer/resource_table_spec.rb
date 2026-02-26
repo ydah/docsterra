@@ -12,12 +12,12 @@ RSpec.describe Terradoc::Renderer::ResourceTable do
     markdown = described_class.new(resources: project.resources).render
 
     expect(markdown).to include("#### Networking")
-    expect(markdown).to include("| リソースタイプ | リソース名 |")
+    expect(markdown).to include("| Resource Type | Resource Name |")
     expect(markdown).to include("google_compute_network")
   end
 
   it "renders empty state" do
     markdown = described_class.new(resources: []).render
-    expect(markdown).to eq("リソースなし")
+    expect(markdown).to eq("No resources")
   end
 end

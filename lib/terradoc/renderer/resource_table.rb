@@ -20,7 +20,7 @@ module Terradoc
       end
 
       def render
-        return "リソースなし" if @resources.empty?
+        return "No resources" if @resources.empty?
 
         grouped = @resources.group_by(&:category)
         sections = grouped.keys.sort_by { |category| CATEGORY_LABELS.fetch(category, category.to_s).downcase }.map do |category|
@@ -35,7 +35,7 @@ module Terradoc
         lines = []
         lines << "#### #{CATEGORY_LABELS.fetch(category, category.to_s.capitalize)}"
         lines << ""
-        lines << "| リソースタイプ | リソース名 | 主要属性 | 説明 |"
+        lines << "| Resource Type | Resource Name | Key Attributes | Description |"
         lines << "|---|---|---|---|"
 
         resources.sort_by(&:identifier).each do |resource|

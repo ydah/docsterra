@@ -29,11 +29,11 @@ module Terradoc
 
       def render_header
         [
-          "# インフラ設計書 — #{document_title}",
+          "# Infrastructure Design Document — #{document_title}",
           "",
-          "生成日時: #{Time.now.strftime('%Y-%m-%d %H:%M:%S')}",
-          "対象ディレクトリ: #{@projects.map(&:path).join(', ')}",
-          "Terraform ファイル数: #{@projects.sum { |project| project.parsed_files.size }}"
+          "Generated at: #{Time.now.strftime('%Y-%m-%d %H:%M:%S')}",
+          "Target directory: #{@projects.map(&:path).join(', ')}",
+          "Terraform file count: #{@projects.sum { |project| project.parsed_files.size }}"
         ].join("\n")
       end
 
@@ -41,18 +41,18 @@ module Terradoc
         total_resources = @projects.sum { |project| project.resources.size }
         services = @projects.flat_map { |project| project.resources.map(&:type) }.uniq.sort
         [
-          "## 概要",
+          "## Overview",
           "",
-          "- 総リソース数: #{total_resources}",
-          "- プロダクト数: #{@projects.size}",
-          "- プロダクト一覧: #{@projects.map(&:name).join(', ')}",
-          "- 使用しているGCPサービス一覧: #{services.join(', ')}"
+          "- Total resources: #{total_resources}",
+          "- Products: #{@projects.size}",
+          "- Product list: #{@projects.map(&:name).join(', ')}",
+          "- GCP services in use: #{services.join(', ')}"
         ].join("\n")
       end
 
       def render_cross_product_dependencies
         [
-          "## プロダクト間依存関係",
+          "## Cross-Product Dependencies",
           "",
           @mermaid.render_project_relationships(projects: @projects, relationships: @relationships)
         ].join("\n")
@@ -62,27 +62,27 @@ module Terradoc
         sections = ["## #{project.name}"]
 
         if project.shared?
-          sections << "### 利用プロダクト一覧"
+          sections << "### Consumer Products"
           sections << render_shared_project_consumers(project)
         end
 
         if render_section?(:resources)
-          sections << "### リソース一覧"
+          sections << "### Resources"
           sections << ResourceTable.new(resources: project.resources).render
         end
 
         if render_section?(:network)
-          sections << "### ネットワーク構成"
+          sections << "### Network Configuration"
           sections << @mermaid.render_network(project.network, project_name: project.name)
         end
 
         if render_section?(:security)
-          sections << "### セキュリティ設定"
+          sections << "### Security Settings"
           sections << SecuritySection.new(report: project.security_report).render
         end
 
         if render_section?(:cost)
-          sections << "### コスト概算情報"
+          sections << "### Cost Estimation"
           sections << CostSection.new(items: project.cost_items).render
         end
 
@@ -90,25 +90,25 @@ module Terradoc
       end
 
       def render_appendix
-        parts = ["## 付録"]
+        parts = ["## Appendix"]
         parts << ""
-        parts << "### 全変数一覧"
+        parts << "### All Variables"
         variable_lines = @projects.flat_map do |project|
           project.variables.map do |entry|
             "- #{project.name}: `#{entry.block.labels.first}`"
           end
         end
-        parts << (variable_lines.empty? ? "なし" : variable_lines.join("\n"))
+        parts << (variable_lines.empty? ? "None" : variable_lines.join("\n"))
         parts << ""
-        parts << "### 全出力値一覧"
+        parts << "### All Outputs"
         output_lines = @projects.flat_map do |project|
           project.outputs.map do |entry|
             "- #{project.name}: `#{entry.block.labels.first}`"
           end
         end
-        parts << (output_lines.empty? ? "なし" : output_lines.join("\n"))
+        parts << (output_lines.empty? ? "None" : output_lines.join("\n"))
         parts << ""
-        parts << "### 未解決の参照一覧"
+        parts << "### Unresolved References"
         parts << render_unresolved_references
         parts.join("\n")
       end
@@ -133,7 +133,7 @@ module Terradoc
           end
         end.uniq
 
-        unresolved.empty? ? "なし" : unresolved.join("\n")
+        unresolved.empty? ? "None" : unresolved.join("\n")
       end
 
       def unresolved_reference_identifier(ref)
@@ -157,7 +157,7 @@ module Terradoc
           source_project.name
         end.uniq.sort
 
-        consumers.empty? ? "なし" : consumers.map { |name| "- #{name}" }.join("\n")
+        consumers.empty? ? "None" : consumers.map { |name| "- #{name}" }.join("\n")
       end
 
       def relationship_target_project(relationship)

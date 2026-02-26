@@ -24,8 +24,8 @@ RSpec.describe Terradoc::Renderer::MarkdownRenderer do
 
     markdown = described_class.new(projects: [project], relationships: [], config: config).render
 
-    expect(markdown).to include("Terraform ファイル数")
-    expect(markdown).to include("### 未解決の参照一覧")
+    expect(markdown).to include("Terraform file count")
+    expect(markdown).to include("### Unresolved References")
     expect(markdown).to include("google_compute_network.missing.id")
   end
 
@@ -73,7 +73,7 @@ RSpec.describe Terradoc::Renderer::MarkdownRenderer do
     markdown = described_class.new(projects: [app, shared], relationships: relationships, config: config).render
 
     expect(markdown).to include("## Shared")
-    expect(markdown).to include("### 利用プロダクト一覧")
+    expect(markdown).to include("### Consumer Products")
     expect(markdown).to include("- App")
   end
 end

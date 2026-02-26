@@ -8,22 +8,22 @@ module Terradoc
       end
 
       def render
-        return "セキュリティ関連リソースなし" unless @report
+        return "No security-related resources" unless @report
 
         [
-          "#### IAMバインディング一覧",
+          "#### IAM Bindings",
           "",
           render_iam_table,
           "",
-          "#### ファイアウォールルール一覧",
+          "#### Firewall Rules",
           "",
           render_firewall_table,
           "",
-          "#### サービスアカウント一覧",
+          "#### Service Accounts",
           "",
           render_service_account_table,
           "",
-          "#### セキュリティ注意事項",
+          "#### Security Notes",
           "",
           render_warnings
         ].join("\n")
@@ -32,10 +32,10 @@ module Terradoc
       private
 
       def render_iam_table
-        return "IAMバインディングなし" if @report.iam_bindings.empty?
+        return "No IAM bindings" if @report.iam_bindings.empty?
 
         lines = [
-          "| メンバー | ロール | リソース | プロダクト |",
+          "| Member | Role | Resource | Product |",
           "|---|---|---|---|"
         ]
         @report.iam_bindings.each do |binding|
@@ -45,10 +45,10 @@ module Terradoc
       end
 
       def render_firewall_table
-        return "ファイアウォールルールなし" if @report.firewall_rules.empty?
+        return "No firewall rules" if @report.firewall_rules.empty?
 
         lines = [
-          "| ルール名 | 方向 | アクション | プロトコル/ポート | ソース | ターゲット |",
+          "| Rule Name | Direction | Action | Protocol/Port | Source | Target |",
           "|---|---|---|---|---|---|"
         ]
         @report.firewall_rules.each do |rule|
@@ -58,16 +58,16 @@ module Terradoc
       end
 
       def render_warnings
-        return "問題は検出されませんでした。" if @report.warnings.empty?
+        return "No issues detected." if @report.warnings.empty?
 
         @report.warnings.map { |warning| "> ⚠️ #{warning}" }.join("\n")
       end
 
       def render_service_account_table
-        return "サービスアカウントなし" if @report.service_accounts.empty?
+        return "No service accounts" if @report.service_accounts.empty?
 
         lines = [
-          "| アカウントID | メール | 表示名 | ロール | 使用箇所 |",
+          "| Account ID | Email | Display Name | Role | Used By |",
           "|---|---|---|---|---|"
         ]
         @report.service_accounts.each do |account|

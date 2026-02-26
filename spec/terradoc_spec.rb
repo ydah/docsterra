@@ -16,12 +16,12 @@ RSpec.describe Terradoc do
     markdown = document.to_markdown
 
     expect(document).to be_a(Terradoc::Document)
-    expect(markdown).to include("# インフラ設計書")
-    expect(markdown).to include("## プロダクト間依存関係")
-    expect(markdown).to include("### リソース一覧")
+    expect(markdown).to include("# Infrastructure Design Document")
+    expect(markdown).to include("## Cross-Product Dependencies")
+    expect(markdown).to include("### Resources")
     expect(markdown).to include("```mermaid")
-    expect(markdown).to include("### セキュリティ設定")
-    expect(markdown).to include("### コスト概算情報")
+    expect(markdown).to include("### Security Settings")
+    expect(markdown).to include("### Cost Estimation")
   end
 
   it "returns dry-run summary counts" do
@@ -49,6 +49,6 @@ RSpec.describe Terradoc do
     document = described_class.generate(File.join(base, "shared"), name: "My Infrastructure")
 
     expect(document.title).to eq("My Infrastructure")
-    expect(document.to_markdown).to include("# インフラ設計書 — My Infrastructure")
+    expect(document.to_markdown).to include("# Infrastructure Design Document — My Infrastructure")
   end
 end
