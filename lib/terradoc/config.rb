@@ -46,15 +46,20 @@ module Terradoc
     end
 
     def merge_cli(paths:, options:, config_path:)
+      merged_output_path = cli_output_override(options) || @output_path
+      merged_sections = cli_sections_override(options) || @sections
+      merged_verbose = @verbose || (options[:verbose] == true)
+      merged_ignore_patterns = @ignore_patterns + Array(options[:ignore]).reject(&:nil?)
+
       self.class.new(
         config_path: config_path,
         paths: paths.empty? ? @paths : paths,
         products: @products,
-        output_path: options.fetch(:output, @output_path),
-        sections: options.key?(:sections) ? options[:sections] : @sections,
+        output_path: merged_output_path,
+        sections: merged_sections,
         resource_attributes: @resource_attributes,
-        ignore_patterns: @ignore_patterns + Array(options[:ignore]),
-        verbose: options.fetch(:verbose, @verbose)
+        ignore_patterns: merged_ignore_patterns,
+        verbose: merged_verbose
       )
     end
 
@@ -105,6 +110,23 @@ module Terradoc
       return path if base_dir.nil? || base_dir == "."
 
       File.expand_path(path, base_dir)
+    end
+
+    def cli_output_override(options)
+      value = options[:output]
+      return nil if value.nil?
+      return nil if value == DEFAULT_OUTPUT_PATH && @output_path != DEFAULT_OUTPUT_PATH
+
+      value
+    end
+
+    def cli_sections_override(options)
+      return nil unless options.key?(:sections)
+
+      value = normalize_sections(options[:sections])
+      return nil if value == DEFAULT_SECTIONS && @sections != DEFAULT_SECTIONS
+
+      value
     end
 
     class << self

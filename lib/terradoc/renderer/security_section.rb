@@ -67,12 +67,13 @@ module Terradoc
         return "サービスアカウントなし" if @report.service_accounts.empty?
 
         lines = [
-          "| アカウントID | メール | 表示名 | ロール |",
-          "|---|---|---|---|"
+          "| アカウントID | メール | 表示名 | ロール | 使用箇所 |",
+          "|---|---|---|---|---|"
         ]
         @report.service_accounts.each do |account|
           roles = account[:roles].empty? ? "—" : account[:roles].join("<br/>")
-          lines << "| `#{account[:account_id]}` | `#{account[:email]}` | #{account[:display_name] || '—'} | #{roles} |"
+          used_by = Array(account[:used_by]).empty? ? "—" : Array(account[:used_by]).map { |item| "`#{item}`" }.join("<br/>")
+          lines << "| `#{account[:account_id]}` | `#{account[:email]}` | #{account[:display_name] || '—'} | #{roles} | #{used_by} |"
         end
         lines.join("\n")
       end

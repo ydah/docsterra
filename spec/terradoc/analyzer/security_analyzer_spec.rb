@@ -23,4 +23,14 @@ RSpec.describe Terradoc::Analyzer::SecurityAnalyzer do
     expect(report.warnings.join("\n")).to include("Open ingress firewall rule")
     expect(report.warnings.join("\n")).to include("Broad IAM role detected")
   end
+
+  it "finds service account usage locations" do
+    resources = load_resources("multi_product/product-web/main.tf")
+
+    report = described_class.new.analyze(resources)
+
+    service_account = report.service_accounts.find { |item| item[:account_id] == "sa-web" }
+    expect(service_account).not_to be_nil
+    expect(service_account[:used_by]).to include("google_cloud_run_service.api")
+  end
 end

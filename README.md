@@ -65,8 +65,9 @@ terradoc version
 ```ruby
 require "terradoc"
 
-markdown = Terradoc.generate("./terraform")
-File.write("./docs/infrastructure.md", markdown)
+doc = Terradoc.generate("./terraform")
+doc.save("./docs/infrastructure.md")
+puts doc.to_markdown
 
 summary = Terradoc.check("./terraform")
 puts summary[:resource_count]

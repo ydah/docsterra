@@ -1,11 +1,43 @@
 # frozen_string_literal: true
 
+require "tmpdir"
+
 RSpec.describe Terradoc::Config do
   describe ".from_cli_options" do
     it "preserves false booleans for verbose" do
       config = described_class.from_cli_options(paths: ["./terraform"], options: { verbose: false })
 
       expect(config.verbose).to eq(false)
+    end
+
+    it "keeps config output and sections when CLI only provides defaults" do
+      Dir.mktmpdir do |dir|
+        config_path = File.join(dir, ".terradoc.yml")
+        File.write(
+          config_path,
+          <<~YAML
+            output:
+              path: "./docs/custom.md"
+              sections:
+                - resources
+                - security
+          YAML
+        )
+
+        config = described_class.from_cli_options(
+          paths: [],
+          options: {
+            config: config_path,
+            output: described_class::DEFAULT_OUTPUT_PATH,
+            sections: "all",
+            verbose: false,
+            ignore: []
+          }
+        )
+
+        expect(config.output_path).to eq("./docs/custom.md")
+        expect(config.sections).to eq(%w[resources security])
+      end
     end
   end
 

@@ -90,12 +90,18 @@ module Terradoc
                               .map { |binding| binding[:role] }
                               .compact
                               .uniq
+          used_by = resources.reject { |candidate| candidate == resource }.filter_map do |candidate|
+            next unless resource_uses_service_account?(candidate, service_account: resource, account_id: account_id, email: email)
+
+            candidate.identifier
+          end.uniq
 
           {
             account_id: account_id,
             email: email,
             display_name: resource.attribute_text("display_name"),
             roles: roles,
+            used_by: used_by,
             resource: resource
           }
         end
@@ -145,6 +151,21 @@ module Terradoc
         else
           [Parser::ExpressionInspector.to_text(value)]
         end.compact
+      end
+
+      def resource_uses_service_account?(resource, service_account:, account_id:, email:)
+        patterns = [
+          account_id.to_s,
+          email.to_s,
+          service_account.identifier,
+          "#{service_account.identifier}.email"
+        ].reject(&:empty?)
+
+        flattened_texts(resource.attributes).any? do |text|
+          next false if text.nil?
+
+          patterns.any? { |pattern| text.include?(pattern) }
+        end
       end
     end
   end

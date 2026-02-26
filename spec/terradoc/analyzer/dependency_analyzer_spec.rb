@@ -26,6 +26,7 @@ RSpec.describe Terradoc::Analyzer::DependencyAnalyzer do
     details = relationships.map(&:detail).join("\n")
     expect(details).to include("Data source")
     expect(details).to include("IAM member uses service account")
+    expect(details).to include("shared-vpc")
     expect(relationships.map(&:type)).to include(:shared_resource, :iam)
   end
 end

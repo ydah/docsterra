@@ -7,11 +7,13 @@ module Terradoc
         relationships = []
         resource_index = build_resource_index(projects)
         name_index = build_name_index(projects)
+        string_name_index = build_string_name_index(projects)
         service_account_index = build_service_account_index(projects)
 
         projects.each do |project|
           relationships.concat(detect_reference_relationships(project, resource_index))
           relationships.concat(detect_data_source_relationships(project, name_index))
+          relationships.concat(detect_shared_name_relationships(project, string_name_index))
           relationships.concat(detect_service_account_relationships(project, service_account_index))
         end
 
@@ -41,6 +43,20 @@ module Terradoc
             account_id = sa.attribute_text("account_id")
             email = sa.attribute_text("email")
             [account_id, email].compact.each { |key| index[key] = sa }
+          end
+        end
+      end
+
+      def build_string_name_index(projects)
+        projects.each_with_object(Hash.new { |hash, key| hash[key] = [] }) do |project, index|
+          project.resources.each do |resource|
+            next unless shareable_name_target?(resource)
+
+            names_for_resource(resource).each do |name|
+              next if name.nil? || name.empty?
+
+              index[name] << resource
+            end
           end
         end
       end
@@ -96,6 +112,25 @@ module Terradoc
         end
       end
 
+      def detect_shared_name_relationships(project, string_name_index)
+        project.resources.flat_map do |resource|
+          flattened_attribute_strings(resource.attributes).filter_map do |text|
+            next unless candidate_shared_name?(text)
+
+            target = string_name_index[text].find { |candidate| candidate.project != project }
+            next unless target
+
+            rel_type = target.project.shared? ? :shared_resource : relation_type_for_target(target)
+            Model::Relationship.new(
+              source: resource,
+              target: target,
+              type: rel_type,
+              detail: "String reference uses shared resource name #{text}"
+            )
+          end
+        end
+      end
+
       def find_service_account_in_member(member, service_account_index)
         service_account_index.each do |key, resource|
           return resource if key && member.include?(key)
@@ -114,6 +149,37 @@ module Terradoc
 
       def relation_type_for_target(target)
         target.category == :networking ? :network : :reference
+      end
+
+      def names_for_resource(resource)
+        [
+          resource.attribute_text("name"),
+          resource.attribute_text("dataset_id"),
+          resource.attribute_text("account_id"),
+          resource.name
+        ].compact.uniq
+      end
+
+      def shareable_name_target?(resource)
+        %i[networking iam messaging].include?(resource.category) || resource.type == "google_pubsub_topic"
+      end
+
+      def flattened_attribute_strings(value)
+        case value
+        when Hash
+          value.values.flat_map { |child| flattened_attribute_strings(child) }
+        when Array
+          value.flat_map { |child| flattened_attribute_strings(child) }
+        else
+          [Parser::ExpressionInspector.to_ruby(value)]
+        end.map(&:to_s).reject(&:empty?)
+      end
+
+      def candidate_shared_name?(text)
+        return false if text.start_with?("http://", "https://")
+        return false if text.match?(/\A\d+\z/)
+
+        text.length >= 3
       end
 
       def deduplicate(relationships)
