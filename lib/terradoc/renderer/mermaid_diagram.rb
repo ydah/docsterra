@@ -5,7 +5,7 @@ module Terradoc
     class MermaidDiagram
       MAX_ENDPOINTS = 20
 
-      def render_network(network, project_name: nil) # rubocop:disable Lint/UnusedMethodArgument
+      def render_network(network, project_name: nil)
         return mermaid_block("graph TB\n  empty[\"No network resources\"]") if network.nil? || network.empty?
 
         lines = ["graph TB"]

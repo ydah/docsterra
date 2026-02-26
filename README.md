@@ -126,14 +126,6 @@ ignore:
 ```bash
 bundle install
 bundle exec rspec
-bundle exec rubocop
-```
-
-If `rubocop` cache path is restricted in your environment, use:
-
-```bash
-RUBOCOP_CACHE_ROOT=/tmp/rubocop-cache bundle exec rubocop
-```
 
 ## License
 
