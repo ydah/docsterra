@@ -19,6 +19,10 @@ module Terradoc
           "",
           render_firewall_table,
           "",
+          "#### サービスアカウント一覧",
+          "",
+          render_service_account_table,
+          "",
           "#### セキュリティ注意事項",
           "",
           render_warnings
@@ -57,6 +61,20 @@ module Terradoc
         return "問題は検出されませんでした。" if @report.warnings.empty?
 
         @report.warnings.map { |warning| "> ⚠️ #{warning}" }.join("\n")
+      end
+
+      def render_service_account_table
+        return "サービスアカウントなし" if @report.service_accounts.empty?
+
+        lines = [
+          "| アカウントID | メール | 表示名 | ロール |",
+          "|---|---|---|---|"
+        ]
+        @report.service_accounts.each do |account|
+          roles = account[:roles].empty? ? "—" : account[:roles].join("<br/>")
+          lines << "| `#{account[:account_id]}` | `#{account[:email]}` | #{account[:display_name] || '—'} | #{roles} |"
+        end
+        lines.join("\n")
       end
     end
   end

@@ -32,9 +32,11 @@ module Terradoc
 
     desc "generate [PATHS...]", "Generate infrastructure document"
     def generate(*paths)
-      markdown = Terradoc.generate(*paths, **runtime_options)
-      write_output(markdown, options[:output])
-      say("Generated #{options[:output]}")
+      document = Terradoc.generate(*paths, **runtime_options)
+      document.save(options[:output])
+      summary = document.summary
+      say("Generated #{options[:output]} (#{summary[:resource_count]} resources across #{summary[:project_count]} projects)")
+      Array(document.warnings).each { |warning| say("Warning: #{warning}") } if options[:verbose]
     rescue Terradoc::Error => e
       raise Thor::Error, e.message
     end
@@ -49,6 +51,7 @@ module Terradoc
       say("Ignore: #{summary[:ignore_patterns].empty? ? '(none)' : summary[:ignore_patterns].join(', ')}")
       say("Projects: #{summary[:project_count]}")
       say("Resources: #{summary[:resource_count]}")
+      say("Data Sources: #{summary[:data_source_count]}")
       Array(summary[:parse_warnings]).each { |warning| say("Warning: #{warning}") }
     rescue Terradoc::Error => e
       raise Thor::Error, e.message
@@ -69,12 +72,6 @@ module Terradoc
 
     def runtime_options
       options.to_h.transform_keys(&:to_sym)
-    end
-
-    def write_output(content, path)
-      directory = File.dirname(path)
-      FileUtils.mkdir_p(directory) unless directory == "."
-      File.write(path, content)
     end
   end
 end

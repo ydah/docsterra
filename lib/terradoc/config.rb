@@ -41,7 +41,7 @@ module Terradoc
       @sections = normalize_sections(sections)
       @resource_attributes = resource_attributes || {}
       @ignore_patterns = Array(ignore_patterns).compact
-      @verbose = !verbose.nil?
+      @verbose = (verbose == true)
       @output = { "path" => @output_path, "sections" => @sections.dup }
     end
 
@@ -65,7 +65,7 @@ module Terradoc
           {
             "name" => hash["name"] || File.basename(hash.fetch("path")),
             "path" => resolve_config_path(hash.fetch("path")),
-            "shared" => !hash["shared"].nil?
+            "shared" => (hash["shared"] == true)
           }
         end
       else

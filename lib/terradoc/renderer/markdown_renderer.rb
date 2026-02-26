@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "set"
+
 module Terradoc
   module Renderer
     class MarkdownRenderer
@@ -29,7 +31,8 @@ module Terradoc
           "# インフラ設計書 — terradoc",
           "",
           "生成日時: #{Time.now.strftime('%Y-%m-%d %H:%M:%S')}",
-          "対象ディレクトリ: #{@projects.map(&:path).join(', ')}"
+          "対象ディレクトリ: #{@projects.map(&:path).join(', ')}",
+          "Terraform ファイル数: #{@projects.sum { |project| project.parsed_files.size }}"
         ].join("\n")
       end
 
@@ -98,12 +101,43 @@ module Terradoc
           end
         end
         parts << (output_lines.empty? ? "なし" : output_lines.join("\n"))
+        parts << ""
+        parts << "### 未解決の参照一覧"
+        parts << render_unresolved_references
         parts.join("\n")
       end
 
       def render_section?(section)
         sections = Array(@config.sections).map(&:to_s)
         sections.include?("all") || sections.include?(section.to_s)
+      end
+
+      def render_unresolved_references
+        known_identifiers = @projects.flat_map(&:all_resource_like).map(&:identifier).to_set
+
+        unresolved = @projects.flat_map do |project|
+          project.resources.flat_map do |resource|
+            resource.references.filter_map do |ref|
+              identifier = unresolved_reference_identifier(ref)
+              next if identifier.nil?
+              next if known_identifiers.include?(identifier)
+
+              "- #{project.name}: `#{resource.identifier}` -> `#{ref}`"
+            end
+          end
+        end.uniq
+
+        unresolved.empty? ? "なし" : unresolved.join("\n")
+      end
+
+      def unresolved_reference_identifier(ref)
+        return nil if ref.nil? || ref.empty?
+        return nil if ref.start_with?("var.", "local.", "module.", "data.", "path.")
+
+        parts = ref.split(".")
+        return nil if parts.length < 2
+
+        parts[0, 2].join(".")
       end
     end
   end

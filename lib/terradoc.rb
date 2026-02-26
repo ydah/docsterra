@@ -2,6 +2,7 @@
 
 require_relative "terradoc/version"
 require_relative "terradoc/config"
+require_relative "terradoc/document"
 require_relative "terradoc/parser/hcl_parser"
 require_relative "terradoc/parser/hcl_lexer"
 require_relative "terradoc/parser/hcl_ast"
@@ -32,21 +33,28 @@ module Terradoc
     #
     # @param paths [Array<String>] Terraform root paths
     # @param options [Hash] CLI-like options
-    # @return [String]
+    # @return [Terradoc::Document]
     def generate(*paths, **options)
       config = Config.from_cli_options(paths: paths, options: options)
       pipeline = build_pipeline(config)
-      Renderer::MarkdownRenderer.new(
+      markdown = Renderer::MarkdownRenderer.new(
         projects: pipeline[:projects],
         relationships: pipeline[:relationships],
         config: config
       ).render
+      Document.new(
+        projects: pipeline[:projects],
+        relationships: pipeline[:relationships],
+        config: config,
+        warnings: pipeline[:warnings],
+        markdown: markdown
+      )
     end
 
     # Load configuration and generate a Markdown document.
     #
     # @param path [String] config file path
-    # @return [String]
+    # @return [Terradoc::Document]
     def from_config(path = Config::DEFAULT_CONFIG_PATH)
       generate(config: path)
     end
@@ -66,6 +74,7 @@ module Terradoc
         ignore_patterns: config.ignore_patterns,
         project_count: pipeline[:projects].size,
         resource_count: pipeline[:projects].sum { |project| project.resources.size },
+        data_source_count: pipeline[:projects].sum { |project| project.data_sources.size },
         parse_warnings: pipeline[:warnings]
       }
     end
