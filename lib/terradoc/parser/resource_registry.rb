@@ -189,9 +189,7 @@ module Terradoc
       end
 
       def deep_copy(hash)
-        hash.each_with_object({}) do |(key, value), copied|
-          copied[key] = value.dup
-        end
+        hash.transform_values(&:dup)
       end
     end
   end

@@ -17,7 +17,7 @@ module Terradoc
         @index = 0
 
         blocks = []
-        while !eof?
+        until eof?
           leading_comment = consume_trivia
           break if eof?
 
@@ -80,11 +80,11 @@ module Terradoc
             next
           end
 
-          if lookahead_type == :EQUALS
-            items << parse_attribute(comment: item_comment)
-          else
-            items << parse_block(comment: item_comment)
-          end
+          items << if lookahead_type == :EQUALS
+                     parse_attribute(comment: item_comment)
+                   else
+                     parse_block(comment: item_comment)
+                   end
         end
 
         items
@@ -215,11 +215,9 @@ module Terradoc
           break if check?(:RBRACE)
 
           key = parse_map_key
-          if check?(:EQUALS) || check?(:COLON)
-            advance_token
-          else
-            raise ParseError, "Expected '=' or ':' in map expression"
-          end
+          raise ParseError, "Expected '=' or ':' in map expression" unless check?(:EQUALS) || check?(:COLON)
+
+          advance_token
 
           value = parse_expression_with_fallback(stoppers: %i[COMMENT COMMA NEWLINE RBRACE])
           pairs[key] = value
@@ -244,9 +242,7 @@ module Terradoc
         head = consume(:IDENT)
         return AST::Literal.new(value: nil) if head.value == "null"
 
-        if check?(:LPAREN)
-          return parse_function_call(head.value)
-        end
+        return parse_function_call(head.value) if check?(:LPAREN)
 
         expr = AST::Reference.new(parts: [head.value])
         loop do

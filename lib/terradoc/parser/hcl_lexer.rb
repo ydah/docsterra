@@ -58,21 +58,21 @@ module Terradoc
           when "#"
             tokens << consume_line_comment("#")
           when "/"
-            if peek_char == "/"
-              tokens << consume_line_comment("//")
-            elsif peek_char == "*"
-              tokens << consume_block_comment
-            else
-              tokens << consume_single_char_token(EXTRA_TOKENS.fetch("/"))
-            end
+            tokens << if peek_char == "/"
+                        consume_line_comment("//")
+                      elsif peek_char == "*"
+                        consume_block_comment
+                      else
+                        consume_single_char_token(EXTRA_TOKENS.fetch("/"))
+                      end
           when "\""
             tokens << consume_string
           when "<"
-            if peek_char == "<"
-              tokens << consume_heredoc
-            else
-              tokens << consume_single_char_token(EXTRA_TOKENS.fetch("<"))
-            end
+            tokens << if peek_char == "<"
+                        consume_heredoc
+                      else
+                        consume_single_char_token(EXTRA_TOKENS.fetch("<"))
+                      end
           else
             tokens << consume_token
           end
@@ -222,9 +222,7 @@ module Terradoc
         header_delimiter = @text[header_delimiter_start...@index].strip
         indented = @text[start_pos...header_delimiter_start].end_with?("<<-")
 
-        if current_char == "\n"
-          advance
-        end
+        advance if current_char == "\n"
 
         content = +""
         loop do

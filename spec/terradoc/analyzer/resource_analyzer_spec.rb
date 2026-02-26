@@ -24,7 +24,7 @@ RSpec.describe Terradoc::Analyzer::ResourceAnalyzer do
     expect(subnet.references).to include("google_compute_network.main.id")
 
     expect(firewall.attribute_text("allow.protocol")).to eq("tcp")
-    expect(firewall.attribute_ruby("allow.ports")).to eq(["80", "443"])
+    expect(firewall.attribute_ruby("allow.ports")).to eq(%w[80 443])
     expect(firewall.category).to eq(:networking)
   end
 

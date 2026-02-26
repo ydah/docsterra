@@ -29,7 +29,7 @@ RSpec.describe Terradoc::Parser::HclParser do
     expect(resource).to be_a(ast_module::Block)
     expect(resource.comment).to eq("web instance")
     expect(resource.type).to eq("resource")
-    expect(resource.labels).to eq(["google_compute_instance", "web"])
+    expect(resource.labels).to eq(%w[google_compute_instance web])
 
     attributes = resource.body.grep(ast_module::Attribute).to_h { |attribute| [attribute.key, attribute] }
     expect(attributes.fetch("machine_type").value).to eq(ast_module::Literal.new(value: "e2-medium"))

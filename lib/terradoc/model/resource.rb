@@ -98,8 +98,6 @@ module Terradoc
                          value.first
                        end
           traverse(next_value, integer_string?(head) ? tail : segments)
-        else
-          nil
         end
       end
 
@@ -108,26 +106,26 @@ module Terradoc
       end
 
       def compact_hash(hash)
-        hash.each_with_object({}) do |(key, value), result|
-          result[key] = if value.is_a?(Hash)
-                          compact_hash(value)
-                        elsif value.is_a?(Array)
-                          value.map { |entry| entry.is_a?(Hash) ? compact_hash(entry) : Terradoc::Parser::ExpressionInspector.to_text(entry) }
-                        else
-                          Terradoc::Parser::ExpressionInspector.to_text(value)
-                        end
+        hash.transform_values do |value|
+          if value.is_a?(Hash)
+            compact_hash(value)
+          elsif value.is_a?(Array)
+            value.map { |entry| entry.is_a?(Hash) ? compact_hash(entry) : Terradoc::Parser::ExpressionInspector.to_text(entry) }
+          else
+            Terradoc::Parser::ExpressionInspector.to_text(value)
+          end
         end
       end
 
       def hash_to_ruby(hash)
-        hash.each_with_object({}) do |(key, value), result|
-          result[key] = if value.is_a?(Hash)
-                          hash_to_ruby(value)
-                        elsif value.is_a?(Array)
-                          value.map { |entry| entry.is_a?(Hash) ? hash_to_ruby(entry) : Terradoc::Parser::ExpressionInspector.to_ruby(entry) }
-                        else
-                          Terradoc::Parser::ExpressionInspector.to_ruby(value)
-                        end
+        hash.transform_values do |value|
+          if value.is_a?(Hash)
+            hash_to_ruby(value)
+          elsif value.is_a?(Array)
+            value.map { |entry| entry.is_a?(Hash) ? hash_to_ruby(entry) : Terradoc::Parser::ExpressionInspector.to_ruby(entry) }
+          else
+            Terradoc::Parser::ExpressionInspector.to_ruby(value)
+          end
         end
       end
     end

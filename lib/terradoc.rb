@@ -100,11 +100,9 @@ module Terradoc
       config.product_definitions.map do |product|
         tf_files = find_tf_files(product["path"], config.ignore_patterns)
         parsed_files = tf_files.each_with_object({}) do |file, result|
-          begin
-            result[file] = parser.parse_file(file)
-          rescue StandardError => e
-            warnings << "Failed to parse #{file}: #{e.message}"
-          end
+          result[file] = parser.parse_file(file)
+        rescue StandardError => e
+          warnings << "Failed to parse #{file}: #{e.message}"
         end
 
         project = Model::Project.new(

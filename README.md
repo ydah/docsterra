@@ -1,39 +1,138 @@
 # Terradoc
 
-TODO: Delete this and the text below, and describe your gem
+`terradoc` is a Ruby gem / CLI that parses Terraform (`.tf`) files and generates infrastructure design documentation in Markdown.
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/terradoc`. To experiment with that code, run `bin/console` for an interactive prompt.
+Current implementation focuses on GCP Terraform resources and produces:
+
+- resource inventory tables
+- Mermaid network diagrams
+- cross-product dependency diagrams
+- security summaries (IAM / firewall / warnings)
+- cost-related spec summaries (non-billing estimate metadata)
 
 ## Installation
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
-
-Install the gem and add to the application's Gemfile by executing:
-
 ```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+gem install terradoc
 ```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+Or from a Gemfile:
 
-```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+```ruby
+gem "terradoc"
 ```
 
-## Usage
+## Quick Start
 
-TODO: Write usage instructions here
+Single Terraform root:
+
+```bash
+terradoc generate ./terraform
+```
+
+Multiple products (cross-product dependency analysis enabled):
+
+```bash
+terradoc generate ./product-a/terraform ./product-b/terraform ./shared/terraform -o ./docs/infrastructure.md
+```
+
+Dry-run summary:
+
+```bash
+terradoc check ./terraform
+```
+
+## CLI Reference
+
+### Commands
+
+```bash
+terradoc generate [PATHS...]
+terradoc check [PATHS...]
+terradoc version
+```
+
+### Options
+
+- `-o`, `--output`: output markdown path (default: `./infrastructure.md`)
+- `-c`, `--config`: config file path (default: `.terradoc.yml`)
+- `-s`, `--sections`: comma-separated sections (`all`, `resources`, `network`, `security`, `cost`)
+- `-v`, `--verbose`: verbose output
+- `--ignore`: ignore glob patterns (repeatable via Thor array syntax)
+
+## Library Usage
+
+```ruby
+require "terradoc"
+
+markdown = Terradoc.generate("./terraform")
+File.write("./docs/infrastructure.md", markdown)
+
+summary = Terradoc.check("./terraform")
+puts summary[:resource_count]
+```
+
+## Configuration (`.terradoc.yml`)
+
+```yaml
+products:
+  - name: "Web Application"
+    path: "./product-web/terraform"
+  - name: "Shared Infrastructure"
+    path: "./shared/terraform"
+    shared: true
+
+output:
+  path: "./docs/infrastructure.md"
+  sections:
+    - resources
+    - network
+    - security
+    - cost
+
+resource_attributes:
+  google_compute_instance:
+    - machine_type
+    - zone
+    - labels.env
+
+ignore:
+  - "**/examples/**"
+```
+
+## Output Example (Sections)
+
+- `## 概要`
+- `## プロダクト間依存関係` (Mermaid)
+- `## {Product}`
+- `### リソース一覧`
+- `### ネットワーク構成` (Mermaid)
+- `### セキュリティ設定`
+- `### コスト概算情報`
+- `## 付録`
+
+## Limitations
+
+- HCL parsing is best-effort. Unsupported expressions are preserved as `RawExpr` and rendered as text.
+- Remote modules are not parsed (metadata only).
+- Local modules are parsed recursively, but complex module evaluation/output resolution is not performed.
+- No real-time GCP pricing lookup; cost output is resource spec metadata only.
+- Terraform state / `terraform plan` JSON is not consumed.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+```bash
+bundle install
+bundle exec rspec
+bundle exec rubocop
+```
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+If `rubocop` cache path is restricted in your environment, use:
 
-## Contributing
-
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/terradoc.
+```bash
+RUBOCOP_CACHE_ROOT=/tmp/rubocop-cache bundle exec rubocop
+```
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+MIT

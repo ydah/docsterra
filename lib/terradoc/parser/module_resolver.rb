@@ -79,8 +79,6 @@ module Terradoc
           node.parts.join
         when AST::RawExpr
           node.text
-        else
-          nil
         end
       end
     end

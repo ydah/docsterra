@@ -41,7 +41,7 @@ module Terradoc
       @sections = normalize_sections(sections)
       @resource_attributes = resource_attributes || {}
       @ignore_patterns = Array(ignore_patterns).compact
-      @verbose = !!verbose
+      @verbose = !verbose.nil?
       @output = { "path" => @output_path, "sections" => @sections.dup }
     end
 
@@ -65,7 +65,7 @@ module Terradoc
           {
             "name" => hash["name"] || File.basename(hash.fetch("path")),
             "path" => resolve_config_path(hash.fetch("path")),
-            "shared" => !!hash["shared"]
+            "shared" => !hash["shared"].nil?
           }
         end
       else
@@ -132,9 +132,7 @@ module Terradoc
       def normalize_options(options)
         return {} if options.nil?
 
-        options.to_h.each_with_object({}) do |(key, value), hash|
-          hash[key.to_sym] = value
-        end
+        options.to_h.transform_keys(&:to_sym)
       end
     end
   end

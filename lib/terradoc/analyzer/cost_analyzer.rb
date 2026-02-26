@@ -80,8 +80,6 @@ module Terradoc
             note: nil,
             resource: resource
           )
-        else
-          nil
         end
       end
 

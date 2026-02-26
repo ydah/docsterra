@@ -68,9 +68,7 @@ module Terradoc
     private
 
     def runtime_options
-      options.to_h.each_with_object({}) do |(key, value), hash|
-        hash[key.to_sym] = value
-      end
+      options.to_h.transform_keys(&:to_sym)
     end
 
     def write_output(content, path)
