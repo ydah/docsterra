@@ -46,10 +46,11 @@ RSpec.describe Terradoc::Parser::HclParser do
     expect(initialize_params).not_to be_nil
   end
 
-  it "falls back to RawExpr for unsupported complex expressions" do
+  it "parses conditional expressions and for expressions while preserving unsupported parts as RawExpr" do
     ast = parser.parse(<<~HCL)
       resource "google_compute_instance" "web" {
         count = var.enabled ? 1 : 0
+        names = [for x in var.instances : x.name if x.enabled]
         complex = { for k, v in var.items : k => v if v.enabled }
       }
     HCL
@@ -58,12 +59,29 @@ RSpec.describe Terradoc::Parser::HclParser do
     attributes = resource.body.grep(ast_module::Attribute).to_h { |attribute| [attribute.key, attribute] }
 
     count_expr = attributes.fetch("count").value
+    names_expr = attributes.fetch("names").value
     complex_expr = attributes.fetch("complex").value
 
-    expect(count_expr).to be_a(ast_module::RawExpr)
-    expect(count_expr.text).to eq("var.enabled ? 1 : 0")
+    expect(count_expr).to be_a(ast_module::ConditionalExpr)
+    expect(count_expr.cond).to eq(ast_module::Reference.new(parts: %w[var enabled]))
+    expect(count_expr.true_val).to eq(ast_module::Literal.new(value: 1))
+    expect(count_expr.false_val).to eq(ast_module::Literal.new(value: 0))
 
-    expect(complex_expr).to be_a(ast_module::RawExpr)
-    expect(complex_expr.text).to include("for k, v in var.items")
+    expect(names_expr).to be_a(ast_module::ForExpr)
+    expect(names_expr.is_map).to eq(false)
+    expect(names_expr.key_var).to be_nil
+    expect(names_expr.val_var).to eq("x")
+    expect(names_expr.collection).to eq(ast_module::Reference.new(parts: %w[var instances]))
+    expect(names_expr.body).to eq(ast_module::Reference.new(parts: %w[x name]))
+    expect(names_expr.cond).to eq(ast_module::Reference.new(parts: %w[x enabled]))
+
+    expect(complex_expr).to be_a(ast_module::ForExpr)
+    expect(complex_expr.is_map).to eq(true)
+    expect(complex_expr.key_var).to eq("k")
+    expect(complex_expr.val_var).to eq("v")
+    expect(complex_expr.collection).to eq(ast_module::Reference.new(parts: %w[var items]))
+    expect(complex_expr.body).to be_a(ast_module::RawExpr)
+    expect(complex_expr.body.text).to eq("k => v")
+    expect(complex_expr.cond).to eq(ast_module::Reference.new(parts: %w[v enabled]))
   end
 end

@@ -98,19 +98,41 @@ module Terradoc
         AST::Attribute.new(key: key, value: value, comment: comment)
       end
 
-      def parse_expression_with_fallback(stoppers:)
+      def parse_expression_with_fallback(stoppers:, stop_ident_values: [])
         start_index = @index
         node = parse_expression
-        return node if expression_terminated?(stoppers)
+        return node if expression_terminated?(stoppers, stop_ident_values)
 
         @index = start_index
-        consume_raw_expression(stoppers: stoppers)
+        consume_raw_expression(stoppers: stoppers, stop_ident_values: stop_ident_values)
       rescue ParseError
         @index = start_index
-        consume_raw_expression(stoppers: stoppers)
+        consume_raw_expression(stoppers: stoppers, stop_ident_values: stop_ident_values)
       end
 
       def parse_expression
+        parse_conditional_expression
+      end
+
+      def parse_conditional_expression
+        condition = parse_unary_expression
+        return condition unless check?(:QUESTION)
+
+        consume(:QUESTION)
+        true_val = parse_expression_with_fallback(stoppers: %i[COMMENT COLON])
+        consume(:COLON)
+        false_val = parse_expression
+
+        AST::ConditionalExpr.new(cond: condition, true_val: true_val, false_val: false_val)
+      end
+
+      def parse_unary_expression
+        if check?(:BANG) || check?(:MINUS)
+          op = advance_token.lexeme
+          expr = parse_unary_expression
+          return AST::UnaryExpr.new(op: op, expr: expr)
+        end
+
         parse_primary_expression
       end
 
@@ -155,6 +177,13 @@ module Terradoc
 
       def parse_list_expression
         consume(:LBRACK)
+        consume_trivia
+        if check_ident_value?("for")
+          expr = parse_for_expression(is_map: false, end_token: :RBRACK)
+          consume(:RBRACK)
+          return expr
+        end
+
         elements = []
 
         until eof? || check?(:RBRACK)
@@ -172,6 +201,13 @@ module Terradoc
 
       def parse_map_expression
         consume(:LBRACE)
+        consume_trivia
+        if check_ident_value?("for")
+          expr = parse_for_expression(is_map: true, end_token: :RBRACE)
+          consume(:RBRACE)
+          return expr
+        end
+
         pairs = {}
 
         until eof? || check?(:RBRACE)
@@ -271,7 +307,51 @@ module Terradoc
         AST::FunctionCall.new(name: name, args: args)
       end
 
-      def consume_raw_expression(stoppers:)
+      def parse_for_expression(is_map:, end_token:)
+        consume_for_keyword("for")
+
+        first_var = consume(:IDENT).value
+        key_var = nil
+        val_var = first_var
+        if check?(:COMMA)
+          advance_token
+          key_var = first_var
+          val_var = consume(:IDENT).value
+        end
+
+        consume_for_keyword("in")
+        collection = parse_expression_with_fallback(stoppers: %i[COMMENT COLON NEWLINE])
+        consume(:COLON)
+
+        body = parse_expression_with_fallback(
+          stoppers: [:COMMENT, :NEWLINE, end_token],
+          stop_ident_values: ["if"]
+        )
+
+        cond = nil
+        if check_ident_value?("if")
+          advance_token
+          cond = parse_expression_with_fallback(stoppers: [:COMMENT, :NEWLINE, end_token])
+        end
+
+        AST::ForExpr.new(
+          key_var: key_var,
+          val_var: val_var,
+          collection: collection,
+          body: body,
+          cond: cond,
+          is_map: is_map
+        )
+      end
+
+      def consume_for_keyword(value)
+        token = consume(:IDENT)
+        return token if token.value == value
+
+        raise ParseError, "Expected '#{value}', got '#{token.value}'"
+      end
+
+      def consume_raw_expression(stoppers:, stop_ident_values:)
         start_token = peek
         return AST::RawExpr.new(text: "") if start_token.nil? || start_token.type == :EOF
 
@@ -282,7 +362,7 @@ module Terradoc
         until eof?
           token = peek
           break if token.nil? || token.type == :EOF
-          break if should_stop_raw?(token, stoppers, depth)
+          break if should_stop_raw?(token, stoppers, stop_ident_values, depth)
 
           first ||= token
           last = token
@@ -299,8 +379,12 @@ module Terradoc
         AST::RawExpr.new(text: text.to_s.strip)
       end
 
-      def should_stop_raw?(token, stoppers, depth)
-        depth.values.all?(&:zero?) && stoppers.include?(token.type)
+      def should_stop_raw?(token, stoppers, stop_ident_values, depth)
+        return false unless depth.values.all?(&:zero?)
+
+        return true if stoppers.include?(token.type)
+
+        token.type == :IDENT && stop_ident_values.include?(token.value)
       end
 
       def update_depth!(depth, token)
@@ -320,11 +404,13 @@ module Terradoc
         end
       end
 
-      def expression_terminated?(stoppers)
+      def expression_terminated?(stoppers, stop_ident_values)
         return true if eof?
 
         token = peek
-        stoppers.include?(token.type) || token.type == :EOF
+        return true if stoppers.include?(token.type) || token.type == :EOF
+
+        token.type == :IDENT && stop_ident_values.include?(token.value)
       end
 
       def consume_trivia
@@ -354,6 +440,10 @@ module Terradoc
 
       def check?(type)
         peek&.type == type
+      end
+
+      def check_ident_value?(value)
+        check?(:IDENT) && peek.value == value
       end
 
       def peek(offset = 0)
