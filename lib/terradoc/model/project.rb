@@ -50,6 +50,17 @@ module Terradoc
         resources.each_with_object({}) { |resource, index| index[resource.identifier] = resource }
       end
 
+      def reindex!
+        @variables = []
+        @outputs = []
+        @modules = []
+        @locals = []
+        @providers = []
+        @terraform_blocks = []
+        extract_blocks
+        self
+      end
+
       private
 
       def extract_blocks

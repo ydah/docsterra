@@ -34,7 +34,7 @@ module Terradoc
     def generate(*paths)
       markdown = Terradoc.generate(*paths, **runtime_options)
       write_output(markdown, options[:output])
-      say("Generated #{options[:output]} (stub output)")
+      say("Generated #{options[:output]}")
     rescue Terradoc::Error => e
       raise Thor::Error, e.message
     end
@@ -47,6 +47,9 @@ module Terradoc
       say("Sections: #{summary[:sections].join(', ')}")
       say("Output: #{summary[:output_path]}")
       say("Ignore: #{summary[:ignore_patterns].empty? ? '(none)' : summary[:ignore_patterns].join(', ')}")
+      say("Projects: #{summary[:project_count]}")
+      say("Resources: #{summary[:resource_count]}")
+      Array(summary[:parse_warnings]).each { |warning| say("Warning: #{warning}") }
     rescue Terradoc::Error => e
       raise Thor::Error, e.message
     end

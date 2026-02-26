@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "yaml"
+require "pathname"
 
 module Terradoc
   class Config
@@ -57,6 +58,27 @@ module Terradoc
       )
     end
 
+    def product_definitions
+      if products.any?
+        products.map do |product|
+          hash = product.transform_keys(&:to_s)
+          {
+            "name" => hash["name"] || File.basename(hash.fetch("path")),
+            "path" => resolve_config_path(hash.fetch("path")),
+            "shared" => !!hash["shared"]
+          }
+        end
+      else
+        paths.map do |path|
+          {
+            "name" => File.basename(path.to_s),
+            "path" => path.to_s,
+            "shared" => false
+          }
+        end
+      end
+    end
+
     private
 
     def normalize_paths(paths, products)
@@ -73,6 +95,16 @@ module Terradoc
       sections.to_s.split(",").map(&:strip).reject(&:empty?).yield_self do |list|
         list.empty? ? DEFAULT_SECTIONS : list
       end
+    end
+
+    def resolve_config_path(path)
+      return path if path.nil?
+      return path if Pathname.new(path).absolute?
+
+      base_dir = File.dirname(config_path || DEFAULT_CONFIG_PATH)
+      return path if base_dir.nil? || base_dir == "."
+
+      File.expand_path(path, base_dir)
     end
 
     class << self

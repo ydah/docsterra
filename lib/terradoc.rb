@@ -35,7 +35,12 @@ module Terradoc
     # @return [String]
     def generate(*paths, **options)
       config = Config.from_cli_options(paths: paths, options: options)
-      render_placeholder_markdown(config)
+      pipeline = build_pipeline(config)
+      Renderer::MarkdownRenderer.new(
+        projects: pipeline[:projects],
+        relationships: pipeline[:relationships],
+        config: config
+      ).render
     end
 
     # Load configuration and generate a Markdown document.
@@ -53,27 +58,101 @@ module Terradoc
     # @return [Hash]
     def check(*paths, **options)
       config = Config.from_cli_options(paths: paths, options: options)
+      pipeline = build_pipeline(config)
       {
-        paths: config.paths,
+        paths: config.product_definitions.map { |item| item["path"] },
         output_path: config.output_path,
         sections: config.sections,
-        ignore_patterns: config.ignore_patterns
+        ignore_patterns: config.ignore_patterns,
+        project_count: pipeline[:projects].size,
+        resource_count: pipeline[:projects].sum { |project| project.resources.size },
+        parse_warnings: pipeline[:warnings]
       }
     end
 
     private
 
-    def render_placeholder_markdown(config)
-      lines = [
-        "# Infrastructure Design Document",
-        "",
-        "Generated at: #{Time.now.strftime("%Y-%m-%d %H:%M:%S")}",
-        "Paths: #{config.paths.empty? ? '(none)' : config.paths.join(', ')}",
-        "Sections: #{config.sections.join(', ')}",
-        "",
-        "> Placeholder output. Parser/analyzers/renderers will be implemented in later phases."
-      ]
-      lines.join("\n")
+    def build_pipeline(config)
+      parser = Parser::HclParser.new
+      registry = Parser::ResourceRegistry.new(custom_attributes: config.resource_attributes)
+      module_resolver = Parser::ModuleResolver.new(parser: parser)
+      resource_analyzer = Analyzer::ResourceAnalyzer.new(registry: registry)
+      network_analyzer = Analyzer::NetworkAnalyzer.new
+      security_analyzer = Analyzer::SecurityAnalyzer.new
+      cost_analyzer = Analyzer::CostAnalyzer.new
+      dependency_analyzer = Analyzer::DependencyAnalyzer.new
+
+      warnings = []
+      projects = build_projects(config: config, parser: parser, module_resolver: module_resolver, warnings: warnings)
+
+      projects.each do |project|
+        resource_analyzer.analyze(project)
+        project.network = network_analyzer.analyze(project.resources)
+        project.security_report = security_analyzer.analyze(project.resources)
+        project.cost_items = cost_analyzer.analyze(project.resources)
+      end
+
+      relationships = dependency_analyzer.analyze(projects)
+      { projects: projects, relationships: relationships, warnings: warnings }
+    end
+
+    def build_projects(config:, parser:, module_resolver:, warnings:)
+      config.product_definitions.map do |product|
+        tf_files = find_tf_files(product["path"], config.ignore_patterns)
+        parsed_files = tf_files.each_with_object({}) do |file, result|
+          begin
+            result[file] = parser.parse_file(file)
+          rescue StandardError => e
+            warnings << "Failed to parse #{file}: #{e.message}"
+          end
+        end
+
+        project = Model::Project.new(
+          name: product["name"],
+          path: product["path"],
+          parsed_files: parsed_files,
+          shared: product["shared"]
+        )
+
+        resolve_local_modules!(project, module_resolver, warnings)
+        project
+      end
+    end
+
+    def resolve_local_modules!(project, module_resolver, warnings)
+      project.modules.each do |entry|
+        result = module_resolver.resolve(project_path: project.path, module_block: entry.block)
+        next unless result[:type] == :local
+
+        result[:parsed_files].each do |file, ast|
+          if ast.is_a?(Hash) && ast[:error]
+            warnings << "Failed to parse module file #{file}: #{ast[:error]}"
+          else
+            project.parsed_files[file] = ast
+          end
+        end
+      end
+      project.reindex!
+    end
+
+    def find_tf_files(root_path, ignore_patterns)
+      return [] if root_path.nil?
+
+      root = File.expand_path(root_path)
+      return [] unless Dir.exist?(root)
+
+      Dir.glob(File.join(root, "**", "*.tf")).sort.reject do |file|
+        relative = file.sub(%r{\A#{Regexp.escape(root)}/?}, "")
+        next true if relative.start_with?("modules/")
+
+        ignored?(relative, ignore_patterns)
+      end
+    end
+
+    def ignored?(relative_path, patterns)
+      Array(patterns).any? do |pattern|
+        File.fnmatch?(pattern, relative_path, File::FNM_PATHNAME | File::FNM_EXTGLOB)
+      end
     end
   end
 end
