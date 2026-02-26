@@ -1,0 +1,37 @@
+# frozen_string_literal: true
+
+RSpec.describe Terradoc::Parser::ModuleResolver do
+  subject(:resolver) { described_class.new }
+
+  let(:parser) { Terradoc::Parser::HclParser.new }
+  let(:fixture_root) { File.expand_path("../../fixtures/modules/root", __dir__) }
+
+  it "resolves and parses local modules" do
+    ast = parser.parse_file(File.join(fixture_root, "main.tf"))
+    module_block = ast.blocks.find { |block| block.type == "module" }
+
+    result = resolver.resolve(project_path: fixture_root, module_block: module_block)
+
+    expect(result[:type]).to eq(:local)
+    expect(result[:source]).to eq("../child")
+    expect(result[:parsed_files]).not_to be_empty
+
+    parsed_ast = result[:parsed_files].values.first
+    expect(parsed_ast.blocks.map(&:type)).to include("resource", "output")
+  end
+
+  it "returns unresolved metadata for remote modules" do
+    ast = parser.parse(<<~HCL)
+      module "remote" {
+        source = "terraform-google-modules/network/google"
+      }
+    HCL
+    module_block = ast.blocks.first
+
+    result = resolver.resolve(project_path: fixture_root, module_block: module_block)
+
+    expect(result[:type]).to eq(:unresolved)
+    expect(result[:source]).to eq("terraform-google-modules/network/google")
+    expect(result[:reason]).to include("remote module source")
+  end
+end
