@@ -5,7 +5,10 @@ RSpec.describe Terradoc do
     expect(Terradoc::VERSION).not_to be nil
   end
 
-  it "does something useful" do
-    expect(false).to eq(true)
+  it "returns markdown from generate" do
+    markdown = described_class.generate("./terraform")
+
+    expect(markdown).to include("# Infrastructure Design Document")
+    expect(markdown).to include("Paths: ./terraform")
   end
 end
