@@ -1,4 +1,4 @@
-# Docsterra
+# Docsterra [![Gem Version](https://badge.fury.io/rb/docsterra.svg)](https://badge.fury.io/rb/docsterra) [![CI](https://github.com/ydah/docsterra/actions/workflows/main.yml/badge.svg)](https://github.com/ydah/docsterra/actions/workflows/main.yml)
 
 `docsterra` is a Ruby gem / CLI that parses Terraform (`.tf`) files and generates infrastructure design documentation in Markdown.
 
